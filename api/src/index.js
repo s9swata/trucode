@@ -19,6 +19,7 @@ const problemRouter = require("./routes/problem");
 const discussRouter = require("./routes/discussion");
 const webhookRouter = require("./routes/webhook");
 const submissionsRouter = require("./routes/submission");
+const userRouter = require("./routes/user");
 const authMiddleware = require("./middleware/auth");
 
 let connectionString = process.env.DATABASE_URL;
@@ -28,7 +29,7 @@ if (!connectionString && process.env.ENV === "production") {
 }
 
 app.get("/", (req, res) => {
-  res.status(200).send("Welcome to the esCode API");
+  res.status(200).send("Welcome to the TruCode API");
 });
 
 app.use("/aura", authMiddleware, auraRouter);
@@ -36,6 +37,7 @@ app.use("/problems", problemRouter);
 app.use("/discuss", authMiddleware, discussRouter);
 app.use("/webhook", webhookRouter);
 app.use("/submissions", submissionsRouter);
+app.use("/users", userRouter);
 
 utils.connectToDb(connectionString).then(() => {
   app.listen(PORT, () => {

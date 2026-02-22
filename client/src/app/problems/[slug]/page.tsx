@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import CodeEditor from "@/components/code-editor";
-import { fetchProblem, submitSolution, getSubmissionResult, type Problem, type SubmissionResult } from "@/lib/api";
+import { fetchProblem, submitSolution, type Problem, type SubmissionResult } from "@/lib/api";
 import { discussions, submissions as mockSubmissions } from "@/lib/mock-data";
 
 const difficultyStyles: Record<"Easy" | "Medium" | "Hard", string> = {

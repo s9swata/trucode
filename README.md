@@ -1,1 +1,1 @@
-The backend for my esCode platform. Feel free to contrbute to the problem statements
+The backend for my TruCode platform. Feel free to contribute to the problem statements

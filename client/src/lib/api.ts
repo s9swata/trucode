@@ -147,3 +147,45 @@ export async function getSubmissionResult(token: string): Promise<SubmissionResu
   }
   return response.json();
 }
+
+export type UserProfile = {
+  user: {
+    username: string;
+    email: string;
+    full_name: string;
+    createdAt: string;
+  };
+  stats: {
+    totalSubmissions: number;
+    acceptedSubmissions: number;
+    acceptanceRate: string;
+    aura: number;
+  };
+};
+
+export async function fetchUserProfile(username: string): Promise<UserProfile> {
+  const response = await fetch(`${API_URL}/users/${username}`);
+  if (!response.ok) {
+    throw new Error(`User not found: ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function syncUser(clerkId: string, email: string, username: string, fullName: string): Promise<void> {
+  const response = await fetch(`${API_URL}/users/sync`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      clerkId,
+      email,
+      username,
+      fullName,
+    }),
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Failed to sync user: ${response.status}`);
+  }
+}

@@ -101,7 +101,7 @@ export default function Home() {
             workspace.
           </h1>
           <p className="text-lg text-muted-foreground">
-            esCode is a modern code evaluation platform inspired by LeetCode.
+            TruCode is a modern code evaluation platform inspired by LeetCode.
             Work through curated problem sets, submit solutions, and learn from
             community discussion — all in a clean, performance-first interface.
           </p>
@@ -154,7 +154,7 @@ export default function Home() {
             </div>
           </div>
           <div className="rounded-2xl border bg-background p-4 font-mono text-xs text-muted-foreground">
-            <p>// Example</p>
+            <p>{/* Example */}</p>
             <p>nums = [2,7,11,15]</p>
             <p>target = 9</p>
             <p>output = [0,1]</p>
