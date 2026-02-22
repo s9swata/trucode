@@ -51,6 +51,12 @@ export default function RootLayout({
                       </Link>
                       <Link
                         className="transition-colors hover:text-foreground"
+                        href="/leaderboard"
+                      >
+                        Leaderboard
+                      </Link>
+                      <Link
+                        className="transition-colors hover:text-foreground"
                         href="/discuss"
                       >
                         Discuss

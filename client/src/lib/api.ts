@@ -189,3 +189,48 @@ export async function syncUser(clerkId: string, email: string, username: string,
     throw new Error(`Failed to sync user: ${response.status}`);
   }
 }
+
+export type LeaderboardEntry = {
+  rank: number;
+  username: string;
+  full_name: string;
+  aura: number;
+};
+
+export async function fetchLeaderboard(limit?: number): Promise<LeaderboardEntry[]> {
+  const url = limit 
+    ? `${API_URL}/users/leaderboard?limit=${limit}`
+    : `${API_URL}/users/leaderboard`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch leaderboard: ${response.status}`);
+  }
+  return response.json();
+}
+
+export type UserAnalytics = {
+  overview: {
+    totalSubmissions: number;
+    acceptedSubmissions: number;
+    failedSubmissions: number;
+    pendingSubmissions: number;
+    acceptanceRate: string;
+    aura: number;
+  };
+  submissionsByDate: { date: string; total: number; accepted: number }[];
+  languages: { language: string; total: number; accepted: number; acceptanceRate: string }[];
+  problems: {
+    attempted: number;
+    completed: number;
+    total: number;
+    completionRate: string;
+  };
+};
+
+export async function fetchUserAnalytics(username: string): Promise<UserAnalytics> {
+  const response = await fetch(`${API_URL}/users/${username}/analytics`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch analytics: ${response.status}`);
+  }
+  return response.json();
+}
