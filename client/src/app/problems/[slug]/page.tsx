@@ -1,14 +1,14 @@
+"use client";
+
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { useParams } from "next/navigation";
+import { useEffect, useState, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import CodeEditor from "@/components/code-editor";
-import { discussions, problems, submissions } from "@/lib/mock-data";
-
-type ProblemDetailPageProps = {
-  params: Promise<{ slug: string }>;
-};
+import { fetchProblem, submitSolution, getSubmissionResult, type Problem, type SubmissionResult } from "@/lib/api";
+import { discussions, submissions as mockSubmissions } from "@/lib/mock-data";
 
 const difficultyStyles: Record<"Easy" | "Medium" | "Hard", string> = {
   Easy: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -16,29 +16,96 @@ const difficultyStyles: Record<"Easy" | "Medium" | "Hard", string> = {
   Hard: "bg-rose-50 text-rose-700 border-rose-200",
 };
 
-export default async function ProblemDetailPage({
-  params,
-}: ProblemDetailPageProps) {
-  const { slug } = await params;
-  const problem = problems.find((item) => item.slug === slug);
+export default function ProblemDetailPage() {
+  const params = useParams();
+  const slug = params?.slug as string;
+  const [problem, setProblem] = useState<Problem | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submissionResult, setSubmissionResult] = useState<SubmissionResult | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  if (!problem) {
-    notFound();
+  const handleSubmit = useCallback(async (language: string, code: string) => {
+    if (!problem) return;
+    
+    setSubmitting(true);
+    setSubmissionResult(null);
+    setSubmitError(null);
+    
+    try {
+      const result = await submitSolution(
+        problem._id,
+        code,
+        language,
+        "anonymous-user"
+      );
+      
+      if ('error' in result) {
+        setSubmitError(result.error);
+        setSubmitting(false);
+        return;
+      }
+      
+      setSubmissionResult({
+        status: result.status as "accepted" | "failed" | "pending",
+        test_cases_passed: result.status === "accepted" ? 1 : 0,
+        total_test_cases: 1,
+        stdout: result.stdout,
+        stderr: result.stderr,
+      });
+      setSubmitting(false);
+    } catch (err) {
+      console.error("Submission failed:", err);
+      setSubmitError(err instanceof Error ? err.message : "Submission failed");
+      setSubmitting(false);
+    }
+  }, [problem]);
+
+  const handleRun = useCallback(async (language: string, code: string) => {
+    console.log("Running code:", language);
+    console.log("Code:", code);
+  }, []);
+
+  useEffect(() => {
+    if (!slug) return;
+    
+    async function loadProblem() {
+      try {
+        const data = await fetchProblem(slug);
+        setProblem(data);
+      } catch (err) {
+        console.error("Failed to fetch problem:", err);
+        setError("Problem not found");
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadProblem();
+  }, [slug]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <p className="text-muted-foreground">Loading problem...</p>
+      </div>
+    );
+  }
+
+  if (error || !problem) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <p className="text-red-500">{error || "Problem not found"}</p>
+      </div>
+    );
   }
 
   const relatedDiscussions = discussions.filter(
-    (item) => item.problemId === problem.id,
+    (item) => item.problemId === problem._id,
   );
-  const recentSubmissions = submissions.filter(
-    (item) => item.problemId === problem.id,
+  const recentSubmissions = mockSubmissions.filter(
+    (item) => item.problemId === problem._id,
   );
-
-  const similarProblems = problems
-    .filter(
-      (p) =>
-        p.id !== problem.id && p.tags.some((tag) => problem.tags.includes(tag)),
-    )
-    .slice(0, 3);
 
   return (
     <div className="space-y-10">
@@ -125,7 +192,57 @@ export default async function ProblemDetailPage({
             </CardContent>
           </Card>
 
-          <CodeEditor title="Submit solution" />
+          <CodeEditor 
+            title="Submit solution" 
+            onRun={handleRun}
+            onSubmit={handleSubmit}
+          />
+          
+          {submissionResult && (
+            <Card className={submissionResult.status === "accepted" ? "border-green-500" : "border-red-500"}>
+              <CardHeader>
+                <h2 className="text-lg font-semibold">
+                  {submissionResult.status === "accepted" 
+                    ? "Accepted!" 
+                    : submissionResult.status === "failed" 
+                      ? "Wrong Answer" 
+                      : "Pending..."}
+                </h2>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <p>Test cases passed: {submissionResult.test_cases_passed} / {submissionResult.total_test_cases}</p>
+                {submissionResult.stdout && (
+                  <div className="mt-2 rounded bg-muted p-2">
+                    <p className="font-medium">Output:</p>
+                    <pre className="whitespace-pre-wrap">{submissionResult.stdout}</pre>
+                  </div>
+                )}
+                {submissionResult.stderr && (
+                  <div className="mt-2 rounded bg-red-50 p-2 text-red-600">
+                    <p className="font-medium">Error:</p>
+                    <pre className="whitespace-pre-wrap">{submissionResult.stderr}</pre>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+          
+          {submitting && (
+            <Card>
+              <CardContent className="flex items-center gap-3 py-4">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-900"></div>
+                <p className="text-sm">Running your solution...</p>
+              </CardContent>
+            </Card>
+          )}
+          
+          {submitError && (
+            <Card className="border-red-500">
+              <CardContent className="py-4">
+                <p className="text-sm text-red-600">{submitError}</p>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <div className="space-y-6">
@@ -233,38 +350,6 @@ export default async function ProblemDetailPage({
               </Link>
             </CardContent>
           </Card>
-
-          {similarProblems.length > 0 && (
-            <Card>
-              <CardHeader className="space-y-2">
-                <h2 className="text-lg font-semibold">Similar problems</h2>
-                <p className="text-sm text-muted-foreground">
-                  Explore problems with similar concepts.
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm text-muted-foreground">
-                {similarProblems.map((p) => (
-                  <div
-                    key={p.id}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border bg-background px-4 py-3"
-                  >
-                    <Link
-                      href={`/problems/${p.slug}`}
-                      className="font-medium text-foreground hover:underline"
-                    >
-                      {p.title}
-                    </Link>
-                    <Badge
-                      variant="outline"
-                      className={`rounded-full border px-2 py-0.5 text-[10px] ${difficultyStyles[p.difficulty]}`}
-                    >
-                      {p.difficulty}
-                    </Badge>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
         </div>
       </section>
     </div>

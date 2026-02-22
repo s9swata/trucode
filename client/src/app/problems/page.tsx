@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import ProblemCard from "@/components/problem-card";
-import { problems, type Difficulty } from "@/lib/mock-data";
+import { fetchProblems, type Difficulty, type Problem } from "@/lib/api";
 
 const difficultyFilters = ["All", "Easy", "Medium", "Hard"] as const;
 const topicFilters = [
@@ -34,6 +34,24 @@ export default function ProblemsPage() {
     "All" | Difficulty
   >("All");
   const [selectedTopic, setSelectedTopic] = useState("All Topics");
+  const [problems, setProblems] = useState<Problem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadProblems() {
+      try {
+        const data = await fetchProblems();
+        setProblems(data);
+      } catch (err) {
+        console.error("Error fetching problems:", err);
+        setError("Failed to load problems");
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadProblems();
+  }, []);
 
   const filteredProblems = useMemo(() => {
     return problems.filter((problem) => {
@@ -55,7 +73,7 @@ export default function ProblemsPage() {
 
       return matchesSearch && matchesDifficulty && matchesTopic;
     });
-  }, [searchQuery, selectedDifficulty, selectedTopic]);
+  }, [problems, searchQuery, selectedDifficulty, selectedTopic]);
 
   return (
     <div className="flex h-[calc(100vh-6rem)] flex-col gap-6">
@@ -131,9 +149,23 @@ export default function ProblemsPage() {
 
       <section className="grid min-h-0 grow gap-6 lg:grid-cols-[1.65fr_0.75fr]">
         <div className="flex flex-col gap-5 overflow-y-auto pr-2 pb-10">
-          {filteredProblems.length > 0 ? (
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
+              <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-gray-900"></div>
+              <p className="text-lg font-semibold">Loading problems...</p>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
+              <p className="text-lg font-semibold text-red-500">{error}</p>
+            </div>
+          ) : problems.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
+              <p className="text-lg font-semibold">No problems found</p>
+              <p className="text-sm">No problems available in the database.</p>
+            </div>
+          ) : filteredProblems.length > 0 ? (
             filteredProblems.map((problem) => (
-              <ProblemCard key={problem.id} problem={problem} />
+              <ProblemCard key={problem._id} problem={problem} />
             ))
           ) : (
             <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
